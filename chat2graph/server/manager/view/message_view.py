@@ -1,6 +1,5 @@
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, TypeVar, cast
-
-from attr import dataclass
 
 from chat2graph.core.common.type import ChatMessageRole, ChatMessageType
 from chat2graph.core.dal.do.message_do import MessageType
