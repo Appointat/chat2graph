@@ -2,11 +2,11 @@ from typing import Any, Dict
 
 import pytest
 
-from app.core.dal.dao.dao_factory import DaoFactory
-from app.core.dal.database import DbSession
-from app.core.model.artifact import ContentType
-from app.core.service.artifact_service import ArtifactService
-from app.core.service.service_factory import ServiceFactory
+from chat2graph.core.dal.dao.dao_factory import DaoFactory
+from chat2graph.core.dal.database import DbSession
+from chat2graph.core.model.artifact import ContentType
+from chat2graph.core.service.artifact_service import ArtifactService
+from chat2graph.core.service.service_factory import ServiceFactory
 
 DaoFactory.initialize(DbSession())
 ServiceFactory.initialize()

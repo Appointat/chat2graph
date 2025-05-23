@@ -2,10 +2,10 @@ import asyncio
 from typing import List, Optional
 from uuid import uuid4
 
-from app.core.common.type import MessageSourceType
-from app.core.model.message import ModelMessage
-from app.core.reasoner.model_service import ModelService
-from app.core.toolkit.tool import Tool
+from chat2graph.core.common.type import MessageSourceType
+from chat2graph.core.model.message import ModelMessage
+from chat2graph.core.reasoner.model_service import ModelService
+from chat2graph.core.toolkit.tool import Tool
 
 
 class SyncAdd(Tool):

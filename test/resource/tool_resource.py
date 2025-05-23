@@ -1,10 +1,10 @@
 from typing import Optional
 from uuid import uuid4
 
-from app.core.common.system_env import SystemEnv
-from app.core.model.message import ModelMessage
-from app.core.reasoner.model_service_factory import ModelServiceFactory
-from app.core.toolkit.tool import Tool
+from chat2graph.core.common.system_env import SystemEnv
+from chat2graph.core.model.message import ModelMessage
+from chat2graph.core.reasoner.model_service_factory import ModelServiceFactory
+from chat2graph.core.toolkit.tool import Tool
 
 
 # example tool

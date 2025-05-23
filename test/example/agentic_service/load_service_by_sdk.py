@@ -1,17 +1,17 @@
-from app.core.common.system_env import SystemEnv
-from app.core.common.type import ReasonerType, WorkflowPlatformType
-from app.core.model.graph_db_config import Neo4jDbConfig
-from app.core.model.message import HybridMessage, TextMessage
-from app.core.prompt.job_decomposition import JOB_DECOMPOSITION_OUTPUT_SCHEMA
-from app.core.sdk.agentic_service import AgenticService
-from app.core.sdk.wrapper.operator_wrapper import OperatorWrapper
-from app.core.toolkit.action import Action
-from app.plugin.neo4j.resource.data_importation import (
+from chat2graph.core.common.system_env import SystemEnv
+from chat2graph.core.common.type import ReasonerType, WorkflowPlatformType
+from chat2graph.core.model.graph_db_config import Neo4jDbConfig
+from chat2graph.core.model.message import HybridMessage, TextMessage
+from chat2graph.core.prompt.job_decomposition import JOB_DECOMPOSITION_OUTPUT_SCHEMA
+from chat2graph.core.sdk.agentic_service import AgenticService
+from chat2graph.core.sdk.wrapper.operator_wrapper import OperatorWrapper
+from chat2graph.core.toolkit.action import Action
+from chat2graph.plugin.neo4j.resource.data_importation import (
     DataImport,
     DataStatusCheck,
     SchemaGetter,
 )
-from app.plugin.neo4j.resource.graph_analysis import (
+from chat2graph.plugin.neo4j.resource.graph_analysis import (
     AlgorithmsGetter,
     BetweennessCentralityExecutor,
     CommonNeighborsExecutor,
@@ -22,18 +22,18 @@ from app.plugin.neo4j.resource.graph_analysis import (
     PageRankExecutor,
     ShortestPathExecutor,
 )
-from app.plugin.neo4j.resource.graph_modeling import (
+from chat2graph.plugin.neo4j.resource.graph_modeling import (
     DocumentReader,
     EdgeLabelAdder,
     GraphReachabilityGetter,
     VertexLabelAdder,
 )
-from app.plugin.neo4j.resource.graph_query import CypherExecutor
-from app.plugin.neo4j.resource.question_answering import (
+from chat2graph.plugin.neo4j.resource.graph_query import CypherExecutor
+from chat2graph.plugin.neo4j.resource.question_answering import (
     InternetRetriever,
     KnowledgeBaseRetriever,
 )
-from app.plugin.neo4j.resource.system_checking import SystemStatusChecker
+from chat2graph.plugin.neo4j.resource.system_checking import SystemStatusChecker
 
 document_reader_tool = DocumentReader(id="document_reader_tool")
 vertex_label_adder_tool = VertexLabelAdder(id="vertex_label_adder_tool")

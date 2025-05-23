@@ -1,9 +1,9 @@
 import asyncio
 
-from app.core.model.job import SubJob
-from app.core.model.task import Task
-from app.core.service.reasoner_service import ReasonerService
-from app.core.workflow.operator import OperatorConfig
+from chat2graph.core.model.job import SubJob
+from chat2graph.core.model.task import Task
+from chat2graph.core.service.reasoner_service import ReasonerService
+from chat2graph.core.workflow.operator import OperatorConfig
 
 
 async def main():

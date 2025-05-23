@@ -2,10 +2,10 @@ import asyncio
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-from app.core.model.job import SubJob
-from app.core.model.task import Task
-from app.core.reasoner.mono_model_reasoner import MonoModelReasoner
-from app.core.toolkit.tool import Tool
+from chat2graph.core.model.job import SubJob
+from chat2graph.core.model.task import Task
+from chat2graph.core.reasoner.mono_model_reasoner import MonoModelReasoner
+from chat2graph.core.toolkit.tool import Tool
 
 
 # example tool

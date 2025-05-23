@@ -1,5 +1,5 @@
-from app.core.model.message import TextMessage
-from app.core.sdk.agentic_service import AgenticService
+from chat2graph.core.model.message import TextMessage
+from chat2graph.core.sdk.agentic_service import AgenticService
 
 
 def main():

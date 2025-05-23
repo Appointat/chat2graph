@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dijkstra's Algorithm Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        #controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #controls label, #controls select, #controls button {
+            margin-right: 10px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        #controls button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        #controls button:disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+        }
+        #graph-container {
+            width: 800px;
+            height: 500px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative; /* For absolute positioning of tooltips if needed */
+        }
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+        .node circle {
+            stroke: #333;
+            stroke-width: 2px;
+            fill: #ADD8E6; /* Light blue */
+        }
+        .node text {
+            font-size: 12px;
+            text-anchor: middle;
+            dominant-baseline: central;
+            fill: #000;
+            pointer-events: none; /* So text doesn't interfere with circle events */
+        }
+        .node .distance-label {
+            font-size: 10px;
+            text-anchor: middle;
+            dominant-baseline: hanging;
+            fill: #800080; /* Purple */
+        }
+        .node.current circle {
+            fill: #FFD700; /* Gold */
+            stroke: #FFA500; /* Orange */
+        }
+        .node.visited circle {
+            fill: #90EE90; /* Light green */
+        }
+        .node.path circle {
+            stroke: #FF0000; /* Red for path highlight */
+            stroke-width: 3px;
+        }
+        .edge {
+            stroke: #999;
+            stroke-width: 2px;
+        }
+        .edge.path {
+            stroke: #FF0000; /* Red */
+            stroke-width: 3px;
+        }
+        .edge-label {
+            font-size: 10px;
+            fill: #333;
+            text-anchor: middle;
+            dominant-baseline: central;
+            pointer-events: none;
+        }
+        #explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+            width: 800px;
+            min-height: 50px;
+            text-align: left;
+            border: 1px solid #ced4da;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dijkstra's Algorithm Visualization</h1>
+
+    <div id="controls">
+        <label for="start-node-select">Start Node:</label>
+        <select id="start-node-select"></select>
+        <button id="next-step-btn">Start</button>
+        <button id="reset-btn">Reset</button>
+    </div>
+
+    <div id="graph-container">
+        <svg id="graph-svg"></svg>
+    </div>
+
+    <div id="explanation">
+        Select a start node and click "Start" to begin the algorithm.
+    </div>
+
+    <script>
+        const svg = document.getElementById('graph-svg');
+        const startNodeSelect = document.getElementById('start-node-select');
+        const nextStepBtn = document.getElementById('next-step-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const explanationDiv = document.getElementById('explanation');
+
+        const NODE_RADIUS = 20;
+
+        let graph = {
+            nodes: [
+                { id: 'A', x: 100, y: 100 }, { id: 'B', x: 250, y: 80 },
+                { id: 'C', x: 280, y: 220 }, { id: 'D', x: 100, y: 300 },
+                { id: 'E', x: 450, y: 150 }, { id: 'F', x: 480, y: 300 },
+                { id: 'G', x: 650, y: 100 }, { id: 'H', x: 680, y: 250 },
+                { id: 'I', x: 300, y: 400 }, { id: 'J', x: 550, y: 420 }
+            ],
+            edges: [
+                { source: 'A', target: 'B', weight: 4 }, { source: 'A', target: 'D', weight: 7 },
+                { source: 'B', target: 'C', weight: 9 }, { source: 'B', target: 'E', weight: 2 },
+                { source: 'C', target: 'D', weight: 3 }, { source: 'C', target: 'F', weight: 4 }, { source: 'C', target: 'E', weight: 1 },
+                { source: 'D', target: 'I', weight: 6 },
+                { source: 'E', target: 'G', weight: 8 }, { source: 'E', target: 'F', weight: 5 },
+                { source: 'F', target: 'H', weight: 3 }, { source: 'F', target: 'J', weight: 6 },
+                { source: 'G', target: 'H', weight: 2 },
+                { source: 'H', target: 'J', weight: 7 },
+                { source: 'I', target: 'J', weight: 10 }
+            ]
+        };
+
+        let distances = {};
+        let predecessors = {};
+        let visited = new Set();
+        let unvisitedNodes = []; // Will be a min-priority queue conceptually
+
+        let algorithmState = {
+            startNode: null,
+            currentNode: null,
+            phase: 'idle', // idle, initialized, selecting_node, processing_neighbors, neighbor_done, finished
+            currentNeighborIndex: 0,
+            neighborsToProcess: []
+        };
+
+        function drawGraph() {
+            svg.innerHTML = ''; // Clear previous drawings
+
+            // Draw edges first (so nodes are on top)
+            graph.edges.forEach(edge => {
+                const sourceNode = graph.nodes.find(n => n.id === edge.source);
+                const targetNode = graph.nodes.find(n => n.id === edge.target);
+                if (!sourceNode || !targetNode) return;
+
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute('x1', sourceNode.x);
+                line.setAttribute('y1', sourceNode.y);
+                line.setAttribute('x2', targetNode.x);
+                line.setAttribute('y2', targetNode.y);
+                line.setAttribute('class', 'edge');
+                line.setAttribute('id', `edge-${sourceNode.id}-${targetNode.id}`);
+                svg.appendChild(line);
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute('x', (sourceNode.x + targetNode.x) / 2);
+                text.setAttribute('y', (sourceNode.y + targetNode.y) / 2 - 5);
+                text.textContent = edge.weight;
+                text.setAttribute('class', 'edge-label');
+                svg.appendChild(text);
+            });
+
+            // Draw nodes
+            graph.nodes.forEach(node => {
+                const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                group.setAttribute('class', 'node');
+                group.setAttribute('id', `node-${node.id}`);
+
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute('cx', node.x);
+                circle.setAttribute('cy', node.y);
+                circle.setAttribute('r', NODE_RADIUS);
+                group.appendChild(circle);
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute('x', node.x);
+                text.setAttribute('y', node.y);
+                text.textContent = node.id;
+                group.appendChild(text);
+
+                const distLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                distLabel.setAttribute('x', node.x);
+                distLabel.setAttribute('y', node.y + NODE_RADIUS + 5); // Below the node
+                distLabel.textContent = '∞';
+                distLabel.setAttribute('class', 'distance-label');
+                distLabel.setAttribute('id', `dist-${node.id}`);
+                group.appendChild(distLabel);
+                
+                svg.appendChild(group);
+            });
+        }
+
+        function updateNodeAppearance(nodeId, type) { // type: 'default', 'current', 'visited', 'path'
+            const nodeGroup = document.getElementById(`node-${nodeId}`);
+            if (nodeGroup) {
+                nodeGroup.setAttribute('class', `node ${type}`);
+            }
+        }
+        
+        function updateEdgeAppearance(sourceId, targetId, type) { // type: 'default', 'path'
+            let edgeElement = document.getElementById(`edge-${sourceId}-${targetId}`) || document.getElementById(`edge-${targetId}-${sourceId}`);
+            if (edgeElement) {
+                edgeElement.setAttribute('class', `edge ${type}`);
+            }
+        }
+
+        function updateDistanceDisplay(nodeId, distance) {
+            const distLabel = document.getElementById(`dist-${nodeId}`);
+            if (distLabel) {
+                distLabel.textContent = distance === Infinity ? '∞' : distance;
+            }
+        }
+
+        function updateExplanation(message) {
+            explanationDiv.innerHTML = message;
+        }
+
+        function initializeDijkstra(startNodeId) {
+            algorithmState.startNode = startNodeId;
+            distances = {};
+            predecessors = {};
+            visited.clear();
+            unvisitedNodes = graph.nodes.map(n => n.id);
+
+            graph.nodes.forEach(node => {
+                distances[node.id] = Infinity;
+                predecessors[node.id] = null;
+                updateNodeAppearance(node.id, 'default');
+                updateDistanceDisplay(node.id, Infinity);
+            });
+            
+            graph.edges.forEach(edge => {
+                 updateEdgeAppearance(edge.source, edge.target, 'default');   
+            });
+
+
+            distances[startNodeId] = 0;
+            updateDistanceDisplay(startNodeId, 0);
+            
+            algorithmState.phase = 'selecting_node';
+            algorithmState.currentNode = null;
+            algorithmState.currentNeighborIndex = 0;
+            algorithmState.neighborsToProcess = [];
+
+            updateExplanation(`Initialization complete. Start node: ${startNodeId}. Distances set. Click "Next Step".`);
+            nextStepBtn.textContent = "Next Step";
+            startNodeSelect.disabled = true;
+            resetBtn.disabled = false;
+        }
+
+        function dijkstraStep() {
+            if (algorithmState.phase === 'idle' || algorithmState.phase === 'finished') return;
+
+            if (algorithmState.phase === 'selecting_node') {
+                // Find unvisited node with smallest distance
+                let minDistance = Infinity;
+                let nextNode = null;
+                
+                unvisitedNodes.forEach(nodeId => {
+                    if (!visited.has(nodeId) && distances[nodeId] < minDistance) {
+                        minDistance = distances[nodeId];
+                        nextNode = nodeId;
+                    }
+                });
+
+                if (nextNode === null || minDistance === Infinity) { // No reachable nodes left or all visited
+                    algorithmState.phase = 'finished';
+                    highlightShortestPaths();
+                    updateExplanation("Algorithm finished. All reachable nodes processed. Shortest paths highlighted.");
+                    nextStepBtn.disabled = true;
+                    return;
+                }
+
+                algorithmState.currentNode = nextNode;
+                visited.add(nextNode);
+                // unvisitedNodes = unvisitedNodes.filter(id => id !== nextNode); // Conceptually removed
+
+                updateNodeAppearance(nextNode, 'current');
+                updateExplanation(`Selected node ${nextNode} with current shortest distance ${distances[nextNode]}.`);
+                
+                algorithmState.neighborsToProcess = graph.edges.filter(edge => 
+                    (edge.source === nextNode && !visited.has(edge.target)) || 
+                    (edge.target === nextNode && !visited.has(edge.source))
+                ).map(edge => (edge.source === nextNode ? edge.target : edge.source));
+                
+                algorithmState.currentNeighborIndex = 0;
+                if (algorithmState.neighborsToProcess.length > 0) {
+                    algorithmState.phase = 'processing_neighbors';
+                    // Automatically process the first neighbor in this conceptual step
+                    processCurrentNeighbor(); 
+                } else {
+                    // No unvisited neighbors, mark current as visited and move to select next node
+                    updateNodeAppearance(algorithmState.currentNode, 'visited');
+                    algorithmState.phase = 'selecting_node'; 
+                    // If no more nodes to select, it will be caught at the start of 'selecting_node'
+                }
+                return; // End of selecting_node step
+            }
+
+            if (algorithmState.phase === 'processing_neighbors') {
+                processCurrentNeighbor();
+            }
+        }
+
+        function processCurrentNeighbor() {
+            if (algorithmState.currentNeighborIndex >= algorithmState.neighborsToProcess.length) {
+                // All neighbors of currentNode processed
+                updateNodeAppearance(algorithmState.currentNode, 'visited');
+                algorithmState.phase = 'selecting_node';
+                updateExplanation(`Finished processing neighbors of ${algorithmState.currentNode}. Moving to select next node.`);
+                // Call dijkstraStep again to select the next node immediately or wait for next click
+                // For now, let's make it so "Next Step" selects the next node
+                return;
+            }
+
+            const neighborId = algorithmState.neighborsToProcess[algorithmState.currentNeighborIndex];
+            const edge = graph.edges.find(e => 
+                (e.source === algorithmState.currentNode && e.target === neighborId) ||
+                (e.target === algorithmState.currentNode && e.source === neighborId)
+            );
+
+            if (edge && !visited.has(neighborId)) {
+                const newDist = distances[algorithmState.currentNode] + edge.weight;
+                let explanationMsg = `Processing neighbor ${neighborId} of ${algorithmState.currentNode}. Current distance to ${neighborId} is ${distances[neighborId]}. Path via ${algorithmState.currentNode} has weight ${newDist}.`;
+
+                if (newDist < distances[neighborId]) {
+                    distances[neighborId] = newDist;
+                    predecessors[neighborId] = algorithmState.currentNode;
+                    updateDistanceDisplay(neighborId, newDist);
+                    explanationMsg += ` New shorter path found! Distance to ${neighborId} updated to ${newDist}.`;
+                } else {
+                    explanationMsg += ` No shorter path found.`;
+                }
+                updateExplanation(explanationMsg);
+            }
+            
+            algorithmState.currentNeighborIndex++;
+
+            if (algorithmState.currentNeighborIndex >= algorithmState.neighborsToProcess.length) {
+                 // All neighbors processed for the current node, prepare to select next node in the next step
+                updateNodeAppearance(algorithmState.currentNode, 'visited');
+                algorithmState.phase = 'selecting_node'; // Next click will select a new node
+                updateExplanation(explanationDiv.innerHTML + `<br>All neighbors of ${algorithmState.currentNode} processed. Click "Next Step" to select the next closest node.`);
+            } else {
+                // Still more neighbors for current node, next click will process next neighbor
+                 updateExplanation(explanationDiv.innerHTML + `<br>Click "Next Step" to process next neighbor of ${algorithmState.currentNode}.`);
+            }
+        }
+
+
+        function highlightShortestPaths() {
+            graph.nodes.forEach(node => {
+                if (node.id === algorithmState.startNode) {
+                    updateNodeAppearance(node.id, 'path'); // Start node is part of its own "path"
+                    return;
+                }
+                if (predecessors[node.id]) {
+                    let current = node.id;
+                    while (predecessors[current]) {
+                        const prev = predecessors[current];
+                        updateNodeAppearance(current, 'path');
+                        updateEdgeAppearance(prev, current, 'path');
+                        current = prev;
+                        if (current === algorithmState.startNode) {
+                             updateNodeAppearance(current, 'path'); // Ensure start node is also styled as path
+                             break;
+                        }
+                    }
+                }
+            });
+        }
+
+        function resetAlgorithm() {
+            algorithmState.phase = 'idle';
+            algorithmState.startNode = null;
+            algorithmState.currentNode = null;
+            
+            distances = {};
+            predecessors = {};
+            visited.clear();
+            unvisitedNodes = [];
+
+            drawGraph(); // Redraws with default styles and '∞' distances
+
+            graph.nodes.forEach(node => {
+                 updateDistanceDisplay(node.id, Infinity); // Ensure labels are reset
+            });
+            
+            startNodeSelect.disabled = false;
+            nextStepBtn.disabled = false;
+            nextStepBtn.textContent = "Start";
+            resetBtn.disabled = true;
+            updateExplanation('Select a start node and click "Start" to begin the algorithm.');
+        }
+
+        // Initialization
+        graph.nodes.forEach(node => {
+            const option = document.createElement('option');
+            option.value = node.id;
+            option.textContent = node.id;
+            startNodeSelect.appendChild(option);
+        });
+
+        nextStepBtn.addEventListener('click', () => {
+            if (algorithmState.phase === 'idle') {
+                const selectedStartNode = startNodeSelect.value;
+                if (selectedStartNode) {
+                    initializeDijkstra(selectedStartNode);
+                } else {
+                    alert("Please select a start node.");
+                }
+            } else if (algorithmState.phase !== 'finished') {
+                dijkstraStep();
+            }
+        });
+
+        resetBtn.addEventListener('click', resetAlgorithm);
+        
+        // Initial draw
+        drawGraph();
+        resetBtn.disabled = true; // Disabled until algorithm starts
+
+    </script>
+</body>
+</html>

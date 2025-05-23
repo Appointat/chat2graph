@@ -1,18 +1,18 @@
 import matplotlib.pyplot as plt
 
-from app.core.common.type import WorkflowStatus
-from app.core.model.job import SubJob
-from app.core.model.message import WorkflowMessage
-from app.core.prompt.eval_operator import (
+from chat2graph.core.common.type import WorkflowStatus
+from chat2graph.core.model.job import SubJob
+from chat2graph.core.model.message import WorkflowMessage
+from chat2graph.core.prompt.eval_operator import (
     EVAL_OPERATION_INSTRUCTION_PROMPT,
     EVAL_OPERATION_OUTPUT_PROMPT,
 )
-from app.core.reasoner.mono_model_reasoner import MonoModelReasoner
-from app.core.service.service_factory import ServiceFactory
-from app.core.service.toolkit_service import ToolkitService
-from app.core.toolkit.action import Action
-from app.core.workflow.eval_operator import EvalOperator
-from app.core.workflow.operator_config import OperatorConfig
+from chat2graph.core.reasoner.mono_model_reasoner import MonoModelReasoner
+from chat2graph.core.service.service_factory import ServiceFactory
+from chat2graph.core.service.toolkit_service import ToolkitService
+from chat2graph.core.toolkit.action import Action
+from chat2graph.core.workflow.eval_operator import EvalOperator
+from chat2graph.core.workflow.operator_config import OperatorConfig
 
 ServiceFactory.initialize()
 

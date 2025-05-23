@@ -1,22 +1,22 @@
 from typing import List, Optional, cast
 from uuid import uuid4
 
-from app.core.agent.agent import AgentConfig, Profile
-from app.core.agent.leader import Leader
-from app.core.common.type import JobStatus
-from app.core.dal.init_db import init_db
-from app.core.model.job import Job, SubJob
-from app.core.model.job_graph import JobGraph
-from app.core.model.job_result import JobResult
-from app.core.model.message import AgentMessage, MessageType, WorkflowMessage
-from app.core.reasoner.dual_model_reasoner import DualModelReasoner
-from app.core.sdk.agentic_service import AgenticService
-from app.core.service.job_service import JobService
-from app.core.service.message_service import MessageService
-from app.core.service.reasoner_service import ReasonerService
-from app.core.workflow.operator import Operator
-from app.core.workflow.operator_config import OperatorConfig
-from app.plugin.dbgpt.dbgpt_workflow import DbgptWorkflow
+from chat2graph.core.agent.agent import AgentConfig, Profile
+from chat2graph.core.agent.leader import Leader
+from chat2graph.core.common.type import JobStatus
+from chat2graph.core.dal.init_db import init_db
+from chat2graph.core.model.job import Job, SubJob
+from chat2graph.core.model.job_graph import JobGraph
+from chat2graph.core.model.job_result import JobResult
+from chat2graph.core.model.message import AgentMessage, MessageType, WorkflowMessage
+from chat2graph.core.reasoner.dual_model_reasoner import DualModelReasoner
+from chat2graph.core.sdk.agentic_service import AgenticService
+from chat2graph.core.service.job_service import JobService
+from chat2graph.core.service.message_service import MessageService
+from chat2graph.core.service.reasoner_service import ReasonerService
+from chat2graph.core.workflow.operator import Operator
+from chat2graph.core.workflow.operator_config import OperatorConfig
+from chat2graph.plugin.dbgpt.dbgpt_workflow import DbgptWorkflow
 
 AgenticService()
 job_service: JobService = JobService.instance

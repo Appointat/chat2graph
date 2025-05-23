@@ -1,24 +1,24 @@
 from typing import cast
 
-from app.core.agent.agent import AgentConfig, Profile
-from app.core.agent.leader import Leader
-from app.core.dal.dao.dao_factory import DaoFactory
-from app.core.dal.database import DbSession
-from app.core.model.job import Job, SubJob
-from app.core.model.job_graph import JobGraph
-from app.core.model.message import AgentMessage, MessageType
-from app.core.prompt.eval_operator import (
+from chat2graph.core.agent.agent import AgentConfig, Profile
+from chat2graph.core.agent.leader import Leader
+from chat2graph.core.dal.dao.dao_factory import DaoFactory
+from chat2graph.core.dal.database import DbSession
+from chat2graph.core.model.job import Job, SubJob
+from chat2graph.core.model.job_graph import JobGraph
+from chat2graph.core.model.message import AgentMessage, MessageType
+from chat2graph.core.prompt.eval_operator import (
     EVAL_OPERATION_INSTRUCTION_PROMPT,
     EVAL_OPERATION_OUTPUT_PROMPT,
 )
-from app.core.service.job_service import JobService
-from app.core.service.message_service import MessageService
-from app.core.service.reasoner_service import ReasonerService
-from app.core.service.service_factory import ServiceFactory
-from app.core.workflow.eval_operator import EvalOperator
-from app.core.workflow.operator import Operator
-from app.core.workflow.operator_config import OperatorConfig
-from app.plugin.dbgpt.dbgpt_workflow import DbgptWorkflow
+from chat2graph.core.service.job_service import JobService
+from chat2graph.core.service.message_service import MessageService
+from chat2graph.core.service.reasoner_service import ReasonerService
+from chat2graph.core.service.service_factory import ServiceFactory
+from chat2graph.core.workflow.eval_operator import EvalOperator
+from chat2graph.core.workflow.operator import Operator
+from chat2graph.core.workflow.operator_config import OperatorConfig
+from chat2graph.plugin.dbgpt.dbgpt_workflow import DbgptWorkflow
 
 DaoFactory.initialize(DbSession())
 ServiceFactory.initialize()

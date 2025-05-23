@@ -2,15 +2,15 @@ from typing import Any, List, Optional
 
 import pytest
 
-from app.core.memory.reasoner_memory import ReasonerMemory
-from app.core.model.job import Job, SubJob
-from app.core.model.message import WorkflowMessage
-from app.core.model.task import Task
-from app.core.reasoner.reasoner import Reasoner
-from app.core.toolkit.tool import Tool
-from app.core.workflow.operator import Operator
-from app.core.workflow.operator_config import OperatorConfig
-from app.plugin.dbgpt.dbgpt_workflow import DbgptWorkflow
+from chat2graph.core.memory.reasoner_memory import ReasonerMemory
+from chat2graph.core.model.job import Job, SubJob
+from chat2graph.core.model.message import WorkflowMessage
+from chat2graph.core.model.task import Task
+from chat2graph.core.reasoner.reasoner import Reasoner
+from chat2graph.core.toolkit.tool import Tool
+from chat2graph.core.workflow.operator import Operator
+from chat2graph.core.workflow.operator_config import OperatorConfig
+from chat2graph.plugin.dbgpt.dbgpt_workflow import DbgptWorkflow
 
 
 class TestReasoner(Reasoner):

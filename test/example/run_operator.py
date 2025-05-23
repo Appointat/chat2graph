@@ -1,12 +1,12 @@
 import matplotlib.pyplot as plt
 
-from app.core.model.job import SubJob
-from app.core.service.reasoner_service import ReasonerService
-from app.core.service.service_factory import ServiceFactory
-from app.core.service.toolkit_service import ToolkitService
-from app.core.toolkit.action import Action
-from app.core.workflow.operator import Operator
-from app.core.workflow.operator_config import OperatorConfig
+from chat2graph.core.model.job import SubJob
+from chat2graph.core.service.reasoner_service import ReasonerService
+from chat2graph.core.service.service_factory import ServiceFactory
+from chat2graph.core.service.toolkit_service import ToolkitService
+from chat2graph.core.toolkit.action import Action
+from chat2graph.core.workflow.operator import Operator
+from chat2graph.core.workflow.operator_config import OperatorConfig
 from test.resource.tool_resource import Query
 
 ServiceFactory.initialize()

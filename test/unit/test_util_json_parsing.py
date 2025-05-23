@@ -1,6 +1,6 @@
 import json
 
-from app.core.common.util import parse_jsons
+from chat2graph.core.common.util import parse_jsons
 
 
 def test_parse_jsons_basic():

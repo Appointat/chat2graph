@@ -1,6 +1,6 @@
-from app.core.dal.init_db import init_db
-from app.core.sdk.agentic_service import AgenticService
-from app.core.sdk.wrapper.session_wrapper import SessionWrapper
+from chat2graph.core.dal.init_db import init_db
+from chat2graph.core.sdk.agentic_service import AgenticService
+from chat2graph.core.sdk.wrapper.session_wrapper import SessionWrapper
 
 AgenticService()
 init_db()

@@ -3,9 +3,9 @@ from typing import List
 import networkx as nx
 import pytest
 
-from app.core.service.toolkit_service import ToolkitService
-from app.core.toolkit.action import Action
-from app.core.toolkit.toolkit import Toolkit
+from chat2graph.core.service.toolkit_service import ToolkitService
+from chat2graph.core.toolkit.action import Action
+from chat2graph.core.toolkit.toolkit import Toolkit
 from test.resource.tool_resource import Query
 
 

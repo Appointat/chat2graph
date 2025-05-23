@@ -1,10 +1,10 @@
 import asyncio
 from typing import List
 
-from app.core.common.system_env import SystemEnv
-from app.core.common.type import MessageSourceType
-from app.core.model.message import ModelMessage
-from app.core.reasoner.model_service_factory import ModelServiceFactory
+from chat2graph.core.common.system_env import SystemEnv
+from chat2graph.core.common.type import MessageSourceType
+from chat2graph.core.model.message import ModelMessage
+from chat2graph.core.reasoner.model_service_factory import ModelServiceFactory
 
 
 async def main():

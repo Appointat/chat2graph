@@ -1,22 +1,22 @@
 import networkx as nx  # type: ignore
 
-from app.core.agent.agent import AgentConfig, Profile
-from app.core.agent.expert import Expert
-from app.core.agent.leader import Leader
-from app.core.dal.dao.dao_factory import DaoFactory
-from app.core.dal.database import DbSession
-from app.core.model.job import Job, SubJob
-from app.core.model.message import AgentMessage
-from app.core.prompt.job_decomposition import (
+from chat2graph.core.agent.agent import AgentConfig, Profile
+from chat2graph.core.agent.expert import Expert
+from chat2graph.core.agent.leader import Leader
+from chat2graph.core.dal.dao.dao_factory import DaoFactory
+from chat2graph.core.dal.database import DbSession
+from chat2graph.core.model.job import Job, SubJob
+from chat2graph.core.model.message import AgentMessage
+from chat2graph.core.prompt.job_decomposition import (
     JOB_DECOMPOSITION_OUTPUT_SCHEMA,
     JOB_DECOMPOSITION_PROMPT,
 )
-from app.core.reasoner.mono_model_reasoner import MonoModelReasoner
-from app.core.service.job_service import JobService
-from app.core.service.service_factory import ServiceFactory
-from app.core.workflow.operator import Operator
-from app.core.workflow.operator_config import OperatorConfig
-from app.plugin.dbgpt.dbgpt_workflow import DbgptWorkflow
+from chat2graph.core.reasoner.mono_model_reasoner import MonoModelReasoner
+from chat2graph.core.service.job_service import JobService
+from chat2graph.core.service.service_factory import ServiceFactory
+from chat2graph.core.workflow.operator import Operator
+from chat2graph.core.workflow.operator_config import OperatorConfig
+from chat2graph.plugin.dbgpt.dbgpt_workflow import DbgptWorkflow
 
 DaoFactory.initialize(DbSession())
 ServiceFactory.initialize()

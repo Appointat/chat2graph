@@ -1,0 +1,130 @@
+# Application basic information configuration
+app:
+  name: "CodingSystem"
+  desc: "An Agentic System to generate and review dynamic HTML code based on user requests."
+  version: "0.0.1"
+
+# Plugin configuration
+plugin:
+  workflow_platform: "DBGPT" # Specify the platform the workflow depends on
+
+# Reasoner configuration
+reasoner:
+  type: "DUAL" # DUAL reasoner (Actor and Thinker)
+
+# Tool definitions
+tools:
+  - &file_writer_tool
+    name: "FileWriter"
+    module_path: "app.custom_tools.html_tool" # Python module path for the tool
+
+  - &html_reader_tool
+    name: "HTMLReader"
+    module_path: "app.custom_tools.html_tool" # Python module path for the tool
+
+# Action definitions
+actions:
+  - &code_generation_action
+    name: "generate_dynamic_html_code"
+    desc: "The LLM generates HTML, CSS, and JavaScript code for a visual and dynamic application based on user requirements. The output is the raw code string."
+    tools: [] # Code generation is handled by the LLM within the operator, not a specific tool here.
+
+  - &save_generated_code_action
+    name: "save_code_to_file"
+    desc: "Saves the provided code content to the specified HTML file: 'test/example/coding_system/open_page_1140.html'."
+    tools:
+      - *file_writer_tool
+
+  - &review_generated_html_action
+    name: "review_html_code_functionality"
+    desc: "Reads the content of the generated HTML file ('test/example/coding_system/open_page_1140.html') to assess if its structure and elements likely meet the user's functional requirements for a dynamic and visual application."
+    tools:
+      - *html_reader_tool
+
+  # Leader-specific actions (placeholders based on the initial example context)
+  - &query_system_status_action
+    name: "query_system_status"
+    desc: "Queries the current status of the system or a specific job. (Conceptual action)"
+    tools: []
+
+  - &job_decomposition_action # Renamed for clarity from the user example for this specific system
+    name: "prepare_coding_task_for_expert"
+    desc: "Analyzes the main user request and prepares it for the CodeExpert. For this system, it primarily involves structuring and passing the request."
+    tools: []
+
+# Toolkit definition
+toolkit:
+  - [
+      *code_generation_action,
+      *save_generated_code_action,
+      *review_generated_html_action,
+    ]
+  # Toolkit for leader (optional, can be empty if leader actions are purely orchestrational)
+  - [*query_system_status_action, *job_decomposition_action]
+
+# Operator (Operator) definitions
+operators:
+  - &html_coding_operator
+    instruction: |
+      You are an expert web developer. The user has provided a request for an application.
+      Your task is to generate a single HTML file containing all necessary HTML, CSS, and JavaScript to create a visual application that is dynamic and changes over time, based on this request.
+      The code must be self-contained within this one file.
+      The JavaScript part should be responsible for the dynamic behavior and time-based visual changes.
+      The output of this step will be the raw code, which will then be saved to 'test/example/coding_system/open_page_1140.html'.
+    output_schema: |
+      generated_code: text # The complete HTML/CSS/JS code as a single string.
+      application_summary: Brief description of the generated application and its intended dynamic features.
+    actions:
+      - *code_generation_action # LLM executes this based on instruction
+      - *save_generated_code_action # Uses the output from the LLM execution
+
+  - &code_review_operator
+    instruction: |
+      You are a quality assurance specialist. An HTML file has been generated and saved at 'test/example/coding_system/open_page_1140.html' based on a user's request for a dynamic and visual application.
+      Your task is to:
+      1. Read the content of this HTML file.
+      2. Based *only* on the code structure, elements, and embedded scripts, assess if it appears to fulfill the original user request for a visual, dynamic, and time-varying application.
+      3. Look for JavaScript that manipulates the DOM over time, uses timers/animations, or event handling that suggests dynamic behavior.
+      4. Check for HTML structures that would result in a visual output.
+      Provide feedback on whether the code seems to meet these requirements.
+    output_schema: |
+      review_passed: boolean # True if the code appears to meet requirements, False otherwise.
+      feedback: Detailed comments on how the code meets or misses the dynamic and visual requirements. Identify specific HTML/CSS/JS parts that support your assessment. Include suggestions for improvement if necessary.
+      path_to_reviewed_file: "test/example/coding_system/open_page_1140.html"
+    actions:
+      - *review_generated_html_action
+
+# Expert (Expert) definitions
+experts:
+  - profile:
+      name: "CodeExpert"
+      desc: |
+        This expert specializes in generating and reviewing HTML, CSS, and JavaScript code
+        for dynamic and visual web applications, based on a single user specification.
+        Its primary goal is to produce a single, self-contained HTML file ('test/example/coding_system/open_page_1140.html')
+        that, when executed in a browser, provides a visual and time-varying experience.
+        It first generates and saves the code, then reviews the generated code to assess
+        its likely adherence to the user's requirements for dynamic and visual behavior.
+        This expert does not execute the code but analyzes its structure and content.
+    reasoner: # This expert uses the global reasoner config or can override
+      actor_name: "CodeExpertActor"
+      thinker_name: "CodeExpertThinker"
+    workflow:
+      - [*html_coding_operator, *code_review_operator] # Sequential workflow: first code, then review
+
+# Leader (Leader) configuration
+leader:
+  # The leader receives the initial user request and orchestrates the CodeExpert.
+  # For this simple system with one expert, decomposition is straightforward.
+  actions:
+    - *job_decomposition_action # To process the initial user prompt and assign to CodeExpert
+    - *query_system_status_action # For potential status checks during the process
+
+# KnowledgeBase configuration (can be left empty)
+knowledgebase: {}
+
+# Memory module configuration (can be left empty)
+memory: {}
+
+# Environment variable configuration (can be left empty)
+env: {}

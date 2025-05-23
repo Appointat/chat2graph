@@ -3,18 +3,18 @@ from uuid import uuid4
 
 import pytest
 
-from app.core.dal.dao.dao_factory import DaoFactory
-from app.core.dal.database import DbSession
-from app.core.dal.init_db import init_db
-from app.core.model.job import SubJob
-from app.core.model.message import WorkflowMessage
-from app.core.model.task import Task
-from app.core.reasoner.dual_model_reasoner import DualModelReasoner
-from app.core.service.knowledge_base_service import KnowledgeBaseService
-from app.core.service.toolkit_service import ToolkitService
-from app.core.toolkit.action import Action
-from app.core.workflow.eval_operator import EvalOperator
-from app.core.workflow.operator_config import OperatorConfig
+from chat2graph.core.dal.dao.dao_factory import DaoFactory
+from chat2graph.core.dal.database import DbSession
+from chat2graph.core.dal.init_db import init_db
+from chat2graph.core.model.job import SubJob
+from chat2graph.core.model.message import WorkflowMessage
+from chat2graph.core.model.task import Task
+from chat2graph.core.reasoner.dual_model_reasoner import DualModelReasoner
+from chat2graph.core.service.knowledge_base_service import KnowledgeBaseService
+from chat2graph.core.service.toolkit_service import ToolkitService
+from chat2graph.core.toolkit.action import Action
+from chat2graph.core.workflow.eval_operator import EvalOperator
+from chat2graph.core.workflow.operator_config import OperatorConfig
 from test.resource.tool_resource import Query
 
 init_db()

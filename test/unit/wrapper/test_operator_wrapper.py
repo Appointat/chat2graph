@@ -1,9 +1,9 @@
 import pytest
 
-from app.core.sdk.wrapper.operator_wrapper import OperatorWrapper
-from app.core.toolkit.action import Action
-from app.core.workflow.operator import Operator
-from app.core.workflow.operator_config import OperatorConfig
+from chat2graph.core.sdk.wrapper.operator_wrapper import OperatorWrapper
+from chat2graph.core.toolkit.action import Action
+from chat2graph.core.workflow.operator import Operator
+from chat2graph.core.workflow.operator_config import OperatorConfig
 
 
 @pytest.fixture()

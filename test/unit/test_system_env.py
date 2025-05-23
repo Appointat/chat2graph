@@ -1,5 +1,5 @@
-from app.core.common.system_env import SystemEnv
-from app.core.common.type import ModelPlatformType
+from chat2graph.core.common.system_env import SystemEnv
+from chat2graph.core.common.type import ModelPlatformType
 
 
 def test_system_env():

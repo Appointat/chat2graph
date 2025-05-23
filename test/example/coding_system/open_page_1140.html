@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Community Detection Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #333;
+        }
+        #controls {
+            margin-bottom: 20px;
+        }
+        #regenerateButton {
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        #regenerateButton:hover {
+            background-color: #0056b3;
+        }
+        #stats {
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        #graphSvgContainer {
+            border: 1px solid #ccc;
+            background-color: #fff;
+            touch-action: none; /* For pointer events */
+        }
+        .node {
+            stroke: #333;
+            stroke-width: 1.5px;
+        }
+        .edge {
+            stroke: #999;
+            stroke-opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+    <h1>Graph Community Detection Demo</h1>
+    <div id="controls">
+        <button id="regenerateButton">Regenerate & Analyze Graph</button>
+    </div>
+    <div id="stats">
+        Nodes: <span id="nodeCount">0</span> | 
+        Edges: <span id="edgeCount">0</span> | 
+        Communities: <span id="communityCount">0</span>
+    </div>
+    <div id="graphSvgContainer">
+        <svg id="graphSvg" width="800" height="600"></svg>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const TARGET_NODES = 100;
+        const M_EDGES_PER_NEW_NODE = 20; // For Barabasi-Albert
+        const INITIAL_NODES_M0 = 5;      // Initial clique size for Barabasi-Albert
+        const LPA_MAX_ITERATIONS = 30;
+        const FORCE_LAYOUT_ITERATIONS = 150;
+        const NODE_RADIUS = 5;
+
+        const COMMUNITY_COLORS = [
+            "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+            "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
+            "#aec7e8", "#ffbb78", "#98df8a", "#ff9896", "#c5b0d5",
+            "#c49c94", "#f7b6d2", "#c7c7c7", "#dbdb8d", "#9edae5"
+        ];
+
+        // --- DOM Elements ---
+        const svgElement = document.getElementById('graphSvg');
+        const regenerateButton = document.getElementById('regenerateButton');
+        const nodeCountSpan = document.getElementById('nodeCount');
+        const edgeCountSpan = document.getElementById('edgeCount');
+        const communityCountSpan = document.getElementById('communityCount');
+        
+        let svgWidth = 800;
+        let svgHeight = 600;
+
+        // --- Graph Generation (Barabási-Albert) ---
+        function generatePowerLawGraph(targetNodes, m, m0) {
+            let nodes = [];
+            let edges = [];
+            let nodeIdCounter = 0;
+            let degree = {}; // Using object for degree tracking: {nodeId: degreeCount}
+
+            // 1. Initialize m0 nodes in a clique
+            for (let i = 0; i < m0; i++) {
+                nodes.push({ id: nodeIdCounter, community: -1, x: 0, y: 0 });
+                degree[nodeIdCounter] = 0;
+                nodeIdCounter++;
+            }
+
+            for (let i = 0; i < m0; i++) {
+                for (let j = i + 1; j < m0; j++) {
+                    edges.push({ source: nodes[i].id, target: nodes[j].id });
+                    degree[nodes[i].id]++;
+                    degree[nodes[j].id]++;
+                }
+            }
+            
+            // 2. Add remaining nodes with preferential attachment
+            for (let i = m0; i < targetNodes; i++) {
+                const newNodeId = nodeIdCounter;
+                nodes.push({ id: newNodeId, community: -1, x: 0, y: 0 });
+                degree[newNodeId] = 0;
+                nodeIdCounter++;
+
+                let preferentialAttachmentList = [];
+                nodes.slice(0, i).forEach(node => { // Only consider existing nodes
+                    for (let k = 0; k < degree[node.id]; k++) {
+                        preferentialAttachmentList.push(node.id);
+                    }
+                    // Add each node at least once to allow connection to low-degree nodes
+                    if (degree[node.id] === 0) preferentialAttachmentList.push(node.id);
+                });
+                
+                // Fallback if preferentialAttachmentList is empty (should not happen with m0 > 1)
+                if (preferentialAttachmentList.length === 0 && nodes.length > 1) {
+                     nodes.slice(0, i).forEach(node => preferentialAttachmentList.push(node.id));
+                }
+
+
+                let targets = new Set();
+                if (preferentialAttachmentList.length > 0) {
+                    for (let j = 0; j < m && targets.size < Math.min(m, preferentialAttachmentList.length, i); j++) {
+                        const targetNodeId = preferentialAttachmentList[Math.floor(Math.random() * preferentialAttachmentList.length)];
+                        if (targetNodeId !== newNodeId && !targets.has(targetNodeId)) {
+                            targets.add(targetNodeId);
+                        }
+                    }
+                }
+                
+                // Ensure m connections if possible, even if preferential list was small
+                let existingNodeIds = nodes.slice(0,i).map(n => n.id);
+                while(targets.size < m && targets.size < i) {
+                    const randomExistingNodeId = existingNodeIds[Math.floor(Math.random() * existingNodeIds.length)];
+                     if (randomExistingNodeId !== newNodeId && !targets.has(randomExistingNodeId)) {
+                        targets.add(randomExistingNodeId);
+                    }
+                }
+
+
+                targets.forEach(targetNodeId => {
+                    edges.push({ source: newNodeId, target: targetNodeId });
+                    degree[newNodeId]++;
+                    degree[targetNodeId]++;
+                });
+            }
+            
+            // Store final degrees in node objects
+            nodes.forEach(node => node.degree = degree[node.id]);
+
+            return { nodes, edges };
+        }
+
+        // --- Community Detection (LPA) ---
+        function detectCommunitiesLPA(nodes, edges, maxIterations) {
+            if (nodes.length === 0) return;
+
+            // Initialize: each node is its own community
+            nodes.forEach(node => {
+                node.community = node.id;
+            });
+
+            // Build adjacency list for quick neighbor lookup
+            const adj = {};
+            nodes.forEach(node => adj[node.id] = []);
+            edges.forEach(edge => {
+                adj[edge.source].push(edge.target);
+                adj[edge.target].push(edge.source);
+            });
+
+            for (let iter = 0; iter < maxIterations; iter++) {
+                let changed = false;
+                // Shuffle nodes for random update order
+                const shuffledNodes = [...nodes].sort(() => Math.random() - 0.5);
+
+                shuffledNodes.forEach(node => {
+                    const neighbors = adj[node.id];
+                    if (neighbors.length === 0) return;
+
+                    const neighborCommunities = {};
+                    neighbors.forEach(neighborId => {
+                        const neighborNode = nodes.find(n => n.id === neighborId);
+                        if (neighborNode) { // Should always find
+                           const community = neighborNode.community;
+                           neighborCommunities[community] = (neighborCommunities[community] || 0) + 1;
+                        }
+                    });
+
+                    let maxCount = 0;
+                    let bestCommunities = [];
+                    for (const community in neighborCommunities) {
+                        if (neighborCommunities[community] > maxCount) {
+                            maxCount = neighborCommunities[community];
+                            bestCommunities = [parseInt(community)];
+                        } else if (neighborCommunities[community] === maxCount) {
+                            bestCommunities.push(parseInt(community));
+                        }
+                    }
+                    
+                    if (bestCommunities.length > 0) {
+                        // Tie-breaking: choose one randomly, or smallest ID
+                        const newCommunity = bestCommunities.sort((a,b) => a-b)[0]; // Smallest ID for deterministic tie-breaking
+                        // const newCommunity = bestCommunities[Math.floor(Math.random() * bestCommunities.length)]; // Random tie-breaking
+                        if (node.community !== newCommunity) {
+                            node.community = newCommunity;
+                            changed = true;
+                        }
+                    }
+                });
+
+                if (!changed) break; // Converged
+            }
+        }
+
+        // --- Graph Visualization (SVG & Force-Directed Layout) ---
+        let currentViewBox = { x: 0, y: 0, width: svgWidth, height: svgHeight };
+        let isPanning = false;
+        let lastPointerPos = { x: 0, y: 0 };
+
+        function visualizeGraph(graphData, svgElem) {
+            svgElem.innerHTML = ''; // Clear previous graph
+            svgWidth = parseInt(svgElem.getAttribute('width'));
+            svgHeight = parseInt(svgElem.getAttribute('height'));
+            
+            currentViewBox = { x: 0, y: 0, width: svgWidth, height: svgHeight };
+            svgElem.setAttribute('viewBox', `${currentViewBox.x} ${currentViewBox.y} ${currentViewBox.width} ${currentViewBox.height}`);
+
+
+            const { nodes, edges } = graphData;
+            if (nodes.length === 0) return;
+
+            // Initial random positions
+            nodes.forEach(node => {
+                node.x = Math.random() * svgWidth * 0.8 + svgWidth * 0.1; // Center a bit
+                node.y = Math.random() * svgHeight * 0.8 + svgHeight * 0.1;
+                node.vx = 0; // velocity x
+                node.vy = 0; // velocity y
+            });
+
+            // Simple Force-Directed Layout
+            const kRepel = 20000; // Repulsion strength: increased for denser graph
+            const kAttract = 0.02; // Attraction strength (spring constant for edges)
+            const damping = 0.85;  // Damping factor
+
+            for (let iter = 0; iter < FORCE_LAYOUT_ITERATIONS; iter++) {
+                // Calculate repulsion forces
+                for (let i = 0; i < nodes.length; i++) {
+                    const nodeA = nodes[i];
+                    for (let j = i + 1; j < nodes.length; j++) {
+                        const nodeB = nodes[j];
+                        const dx = nodeB.x - nodeA.x;
+                        const dy = nodeB.y - nodeA.y;
+                        let distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance === 0) distance = 0.1; // Avoid division by zero
+
+                        const force = kRepel / (distance * distance);
+                        const fx = (dx / distance) * force;
+                        const fy = (dy / distance) * force;
+
+                        nodeA.vx -= fx;
+                        nodeA.vy -= fy;
+                        nodeB.vx += fx;
+                        nodeB.vy += fy;
+                    }
+                }
+
+                // Calculate attraction forces (edges)
+                edges.forEach(edge => {
+                    const sourceNode = nodes.find(n => n.id === edge.source);
+                    const targetNode = nodes.find(n => n.id === edge.target);
+                    if (!sourceNode || !targetNode) return;
+
+                    const dx = targetNode.x - sourceNode.x;
+                    const dy = targetNode.y - sourceNode.y;
+                    // let distance = Math.sqrt(dx * dx + dy * dy); // Not needed for simple spring
+
+                    const forceX = dx * kAttract;
+                    const forceY = dy * kAttract;
+
+                    sourceNode.vx += forceX;
+                    sourceNode.vy += forceY;
+                    targetNode.vx -= forceX;
+                    targetNode.vy -= forceY;
+                });
+
+                // Update positions
+                nodes.forEach(node => {
+                    node.x += node.vx;
+                    node.y += node.vy;
+
+                    // Apply damping
+                    node.vx *= damping;
+                    node.vy *= damping;
+
+                    // Boundary checks (simple wall repulsion)
+                    const margin = NODE_RADIUS * 2;
+                    if (node.x < margin) { node.x = margin; node.vx *= -0.5; }
+                    if (node.x > svgWidth - margin) { node.x = svgWidth - margin; node.vx *= -0.5; }
+                    if (node.y < margin) { node.y = margin; node.vy *= -0.5; }
+                    if (node.y > svgHeight - margin) { node.y = svgHeight - margin; node.vy *= -0.5; }
+                });
+            }
+            
+            const mainGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+            // Render Edges
+            edges.forEach(edge => {
+                const sourceNode = nodes.find(n => n.id === edge.source);
+                const targetNode = nodes.find(n => n.id === edge.target);
+                if (!sourceNode || !targetNode) return;
+
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute('x1', sourceNode.x);
+                line.setAttribute('y1', sourceNode.y);
+                line.setAttribute('x2', targetNode.x);
+                line.setAttribute('y2', targetNode.y);
+                line.setAttribute('class', 'edge');
+                line.setAttribute('stroke-width', '1'); // Thinner for dense graph
+                mainGroup.appendChild(line);
+            });
+
+            // Render Nodes
+            nodes.forEach(node => {
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute('cx', node.x);
+                circle.setAttribute('cy', node.y);
+                circle.setAttribute('r', NODE_RADIUS);
+                circle.setAttribute('class', 'node');
+                const colorIndex = node.community === -1 ? COMMUNITY_COLORS.length : node.community % COMMUNITY_COLORS.length;
+                circle.setAttribute('fill', COMMUNITY_COLORS[colorIndex] || '#ccc'); // Fallback color
+                
+                const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+                title.textContent = `Node ID: ${node.id}\nCommunity: ${node.community}`;
+                circle.appendChild(title);
+                mainGroup.appendChild(circle);
+            });
+            
+            svgElem.appendChild(mainGroup);
+            setupZoomPan(svgElem, mainGroup);
+        }
+
+        function setupZoomPan(svg, group) {
+            let scale = 1;
+            let panX = 0;
+            let panY = 0;
+            let isDragging = false;
+            let lastMouseX, lastMouseY;
+
+            svg.addEventListener('wheel', (event) => {
+                event.preventDefault();
+                const zoomIntensity = 0.1;
+                const direction = event.deltaY < 0 ? 1 : -1;
+                const oldScale = scale;
+                scale *= (1 + direction * zoomIntensity);
+                scale = Math.max(0.1, Math.min(scale, 10)); // Clamp scale
+
+                // Zoom towards mouse pointer
+                const svgRect = svg.getBoundingClientRect();
+                const mouseX = event.clientX - svgRect.left;
+                const mouseY = event.clientY - svgRect.top;
+                
+                panX = mouseX - (mouseX - panX) * (scale / oldScale);
+                panY = mouseY - (mouseY - panY) * (scale / oldScale);
+                
+                updateTransform();
+            });
+
+            svg.addEventListener('mousedown', (event) => {
+                if (event.button === 0) { // Left mouse button
+                    isDragging = true;
+                    lastMouseX = event.clientX;
+                    lastMouseY = event.clientY;
+                    svg.style.cursor = 'grabbing';
+                }
+            });
+
+            svg.addEventListener('mousemove', (event) => {
+                if (isDragging) {
+                    const dx = event.clientX - lastMouseX;
+                    const dy = event.clientY - lastMouseY;
+                    panX += dx;
+                    panY += dy;
+                    lastMouseX = event.clientX;
+                    lastMouseY = event.clientY;
+                    updateTransform();
+                }
+            });
+
+            svg.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    svg.style.cursor = 'grab';
+                }
+            });
+            svg.addEventListener('mouseleave', () => {
+                 if (isDragging) {
+                    isDragging = false;
+                    svg.style.cursor = 'grab';
+                }
+            });
+            
+            function updateTransform() {
+                group.setAttribute('transform', `translate(${panX}, ${panY}) scale(${scale})`);
+            }
+            svg.style.cursor = 'grab';
+            updateTransform(); // Initial transform
+        }
+
+
+        // --- Stats Update ---
+        function updateStats(numNodes, numEdges, nodeCommunities) {
+            nodeCountSpan.textContent = numNodes;
+            edgeCountSpan.textContent = numEdges;
+            if (nodeCommunities && nodeCommunities.length > 0) {
+                const uniqueCommunities = new Set(nodeCommunities.filter(c => c !== -1));
+                communityCountSpan.textContent = uniqueCommunities.size;
+            } else {
+                communityCountSpan.textContent = 0;
+            }
+        }
+
+        // --- Main Control Flow ---
+        function runDemonstration() {
+            console.log("Generating graph...");
+            const graphData = generatePowerLawGraph(TARGET_NODES, M_EDGES_PER_NEW_NODE, INITIAL_NODES_M0);
+            console.log(`Graph generated: ${graphData.nodes.length} nodes, ${graphData.edges.length} edges`);
+
+            console.log("Detecting communities...");
+            detectCommunitiesLPA(graphData.nodes, graphData.edges, LPA_MAX_ITERATIONS);
+            console.log("Communities detected.");
+
+            console.log("Visualizing graph...");
+            visualizeGraph(graphData, svgElement);
+            console.log("Graph visualized.");
+
+            updateStats(graphData.nodes.length, graphData.edges.length, graphData.nodes.map(n => n.community));
+        }
+
+        // --- Event Listeners ---
+        regenerateButton.addEventListener('click', runDemonstration);
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initial run
+            runDemonstration();
+        });
+
+    </script>
+</body>
+</html>

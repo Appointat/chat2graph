@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-T">
+    <title>Interactive LPA Visualization</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background-color: #f0f0f0; }
+        #controls-panel { padding: 15px; background-color: #e0e0e0; border-bottom: 1px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 10; }
+        .control-group { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #bbb; }
+        .control-group:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+        .control-group h3 { margin-top: 0; margin-bottom: 10px; font-size: 1.1em; color: #333; }
+        label { margin-right: 5px; font-size: 0.9em; }
+        input[type="number"], select, input[type="range"] { margin-right: 15px; padding: 5px; border-radius: 3px; border: 1px solid #ccc; }
+        button { padding: 8px 12px; margin-right: 10px; background-color: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.9em; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #aaa; cursor: not-allowed; }
+        #visualization-area { flex-grow: 1; display: flex; position: relative; }
+        #graph-svg { width: 100%; height: 100%; background-color: #fff; border: 1px solid #ddd; }
+        #node-info-panel {
+            position: absolute; right: 10px; top: 10px; width: 250px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ccc; border-radius: 5px; padding: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1); font-size: 0.85em;
+            display: none; /* Hidden by default */
+            z-index: 20;
+        }
+        #node-info-panel h4 { margin-top: 0; margin-bottom: 8px; font-size: 1em; }
+        #node-info-panel p { margin: 4px 0; }
+        .link { stroke: #999; stroke-opacity: 0.6; }
+        .node { stroke: #fff; stroke-width: 1.5px; cursor: pointer; }
+        .node:hover { stroke: #333; stroke-width: 2px; }
+    </style>
+</head>
+<body>
+
+    <div id="controls-panel">
+        <div class="control-group">
+            <h3>Graph Generation</h3>
+            <label for="num-nodes">Number of Nodes:</label>
+            <input type="number" id="num-nodes" value="50" min="10" max="200">
+            <label for="graph-model">Graph Model:</label>
+            <select id="graph-model">
+                <option value="community">Community (Predefined Clusters)</option>
+                <option value="er">Erdős–Rényi</option>
+            </select>
+            <button id="generate-graph-btn">Generate Graph</button>
+        </div>
+
+        <div class="control-group">
+            <h3>LPA Simulation & Control</h3>
+            <button id="start-lpa-btn" disabled>Start</button>
+            <button id="pause-lpa-btn" disabled>Pause</button>
+            <button id="resume-lpa-btn" disabled>Resume</button>
+            <button id="step-lpa-btn" disabled>Step</button>
+            <button id="reset-lpa-btn" disabled>Reset Labels</button>
+            <label for="simulation-speed">Speed:</label>
+            <input type="range" id="simulation-speed" min="50" max="2000" value="500" step="50">
+            <span id="speed-value">500ms</span>
+        </div>
+    </div>
+
+    <div id="visualization-area">
+        <svg id="graph-svg"></svg>
+        <div id="node-info-panel">
+            <h4>Node Information</h4>
+            <p><strong>ID:</strong> <span id="info-node-id"></span></p>
+            <p><strong>Label:</strong> <span id="info-node-label"></span></p>
+            <p><strong>Neighbors' Labels:</strong> <span id="info-node-neighbors"></span></p>
+        </div>
+    </div>
+
+    <script>
+        const svg = document.getElementById('graph-svg');
+        const numNodesInput = document.getElementById('num-nodes');
+        const graphModelSelect = document.getElementById('graph-model');
+        const generateGraphBtn = document.getElementById('generate-graph-btn');
+        const startLPABtn = document.getElementById('start-lpa-btn');
+        const pauseLPABtn = document.getElementById('pause-lpa-btn');
+        const resumeLPABtn = document.getElementById('resume-lpa-btn');
+        const stepLPABtn = document.getElementById('step-lpa-btn');
+        const resetLPABtn = document.getElementById('reset-lpa-btn');
+        const simulationSpeedInput = document.getElementById('simulation-speed');
+        const speedValueSpan = document.getElementById('speed-value');
+        const nodeInfoPanel = document.getElementById('node-info-panel');
+        const infoNodeId = document.getElementById('info-node-id');
+        const infoNodeLabel = document.getElementById('info-node-label');
+        const infoNodeNeighbors = document.getElementById('info-node-neighbors');
+
+        let nodes = [];
+        let links = [];
+        let lpaInterval;
+        let isLPAPaused = false;
+        let isLPARunning = false;
+        let currentIteration = 0;
+        const MAX_ITERATIONS = 100; // Safeguard against infinite loops
+
+        // Colors for labels (can be expanded)
+        const labelColors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
+                             "#aec7e8", "#ffbb78", "#98df8a", "#ff9896", "#c5b0d5", "#c49c94", "#f7b6d2", "#c7c7c7", "#dbdb8d", "#9edae5"];
+
+        // SVG Zoom/Pan variables
+        let svgTransform = { x: 0, y: 0, k: 1 };
+        let isDragging = false;
+        let lastMousePos = { x: 0, y: 0 };
+        let svgContentGroup; // To group all graph elements for zoom/pan
+
+        function setupSVG() {
+            svg.innerHTML = ''; // Clear previous SVG content
+            svgContentGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            svg.appendChild(svgContentGroup);
+            applyTransform();
+
+            svg.addEventListener('wheel', (event) => {
+                event.preventDefault();
+                const zoomFactor = 1.1;
+                const direction = event.deltaY < 0 ? zoomFactor : 1 / zoomFactor;
+                const svgRect = svg.getBoundingClientRect();
+                const mouseX = event.clientX - svgRect.left;
+                const mouseY = event.clientY - svgRect.top;
+
+                svgTransform.x = mouseX - (mouseX - svgTransform.x) * direction;
+                svgTransform.y = mouseY - (mouseY - svgTransform.y) * direction;
+                svgTransform.k *= direction;
+                applyTransform();
+            });
+
+            svg.addEventListener('mousedown', (event) => {
+                if (event.target === svg || event.target === svgContentGroup) { // Pan only if background is clicked
+                    isDragging = true;
+                    lastMousePos = { x: event.clientX, y: event.clientY };
+                    svg.style.cursor = 'grabbing';
+                }
+            });
+
+            svg.addEventListener('mousemove', (event) => {
+                if (isDragging) {
+                    const dx = event.clientX - lastMousePos.x;
+                    const dy = event.clientY - lastMousePos.y;
+                    svgTransform.x += dx;
+                    svgTransform.y += dy;
+                    lastMousePos = { x: event.clientX, y: event.clientY };
+                    applyTransform();
+                }
+            });
+
+            svg.addEventListener('mouseup', () => {
+                isDragging = false;
+                svg.style.cursor = 'grab';
+            });
+            svg.addEventListener('mouseleave', () => { // Stop dragging if mouse leaves SVG
+                isDragging = false;
+                svg.style.cursor = 'default';
+            });
+             svg.style.cursor = 'grab';
+        }
+
+        function applyTransform() {
+            if (svgContentGroup) {
+                svgContentGroup.setAttribute('transform', `translate(${svgTransform.x}, ${svgTransform.y}) scale(${svgTransform.k})`);
+            }
+        }
+
+
+        function generateGraph() {
+            const numNodes = parseInt(numNodesInput.value);
+            const model = graphModelSelect.value;
+            nodes = [];
+            links = [];
+            setupSVG(); // Reset SVG and setup zoom/pan group
+
+            const width = svg.clientWidth || 800;
+            const height = svg.clientHeight || 600;
+
+            // Generate nodes
+            for (let i = 0; i < numNodes; i++) {
+                nodes.push({
+                    id: i,
+                    label: i, // Initial unique label
+                    x: Math.random() * (width * 0.8) + (width * 0.1), // Random position with margin
+                    y: Math.random() * (height * 0.8) + (height * 0.1),
+                    originalLabel: i
+                });
+            }
+
+            if (model === 'er') {
+                generateERGraph(numNodes, 0.1); // ER with p=0.1
+            } else if (model === 'community') {
+                generateCommunityGraph(numNodes, Math.max(2, Math.floor(numNodes / 15))); // e.g. 3-5 communities
+            }
+
+            initializeLPALabels(); // Ensure labels are unique and set
+            drawGraph();
+            updateLPAControls(true);
+            currentIteration = 0;
+            isLPARunning = false;
+            isLPAPaused = false;
+            if (lpaInterval) clearInterval(lpaInterval);
+        }
+
+        function generateERGraph(N, p) {
+            for (let i = 0; i < N; i++) {
+                for (let j = i + 1; j < N; j++) {
+                    if (Math.random() < p) {
+                        links.push({ source: nodes[i], target: nodes[j] });
+                    }
+                }
+            }
+        }
+
+        function generateCommunityGraph(N, numCommunities) {
+            const communitySize = Math.floor(N / numCommunities);
+            const width = svg.clientWidth || 800;
+            const height = svg.clientHeight || 600;
+            const communityColors = labelColors.slice(0, numCommunities); // Use distinct colors for communities initially
+
+            for (let i = 0; i < N; i++) {
+                const communityIndex = Math.min(Math.floor(i / communitySize), numCommunities - 1);
+                nodes[i].community = communityIndex;
+                // Position nodes in clusters for better visualization
+                const angle = (communityIndex / numCommunities) * 2 * Math.PI + (Math.random() - 0.5) * 0.5;
+                const radius = width / 4 + (Math.random() - 0.5) * (width/10) ;
+                nodes[i].x = width / 2 + radius * Math.cos(angle) + (Math.random() * 50 - 25);
+                nodes[i].y = height / 2 + radius * Math.sin(angle) + (Math.random() * 50 - 25);
+            }
+
+            const intraCommunityProb = 0.3; // Higher probability within community
+            const interCommunityProb = 0.02; // Lower probability between communities
+
+            for (let i = 0; i < N; i++) {
+                for (let j = i + 1; j < N; j++) {
+                    const prob = nodes[i].community === nodes[j].community ? intraCommunityProb : interCommunityProb;
+                    if (Math.random() < prob) {
+                        links.push({ source: nodes[i], target: nodes[j] });
+                    }
+                }
+            }
+        }
+
+        function drawGraph() {
+            if (!svgContentGroup) setupSVG();
+            svgContentGroup.innerHTML = ''; // Clear previous elements within the group
+
+            // Draw links first (so they are under nodes)
+            links.forEach(link => {
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute('x1', link.source.x);
+                line.setAttribute('y1', link.source.y);
+                line.setAttribute('x2', link.target.x);
+                line.setAttribute('y2', link.target.y);
+                line.classList.add('link');
+                svgContentGroup.appendChild(line);
+            });
+
+            // Draw nodes
+            nodes.forEach(node => {
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute('cx', node.x);
+                circle.setAttribute('cy', node.y);
+                circle.setAttribute('r', 7); // Node radius
+                circle.setAttribute('fill', labelColors[node.label % labelColors.length]);
+                circle.classList.add('node');
+                circle.dataset.id = node.id;
+
+                circle.addEventListener('mouseover', () => showNodeInfo(node));
+                circle.addEventListener('mouseout', () => hideNodeInfo());
+                // Add click listener if needed for persistent info or other interactions
+                // circle.addEventListener('click', () => console.log("Clicked node:", node.id));
+
+                svgContentGroup.appendChild(circle);
+            });
+        }
+
+        function initializeLPALabels() {
+            nodes.forEach((node, i) => {
+                node.label = node.originalLabel; // Use original ID as unique label
+            });
+            currentIteration = 0;
+        }
+
+        function runLPAStep() {
+            if (currentIteration >= MAX_ITERATIONS) {
+                console.log("Max iterations reached.");
+                stopLPA();
+                return false;
+            }
+
+            let changed = false;
+            // Process nodes in a random order
+            const shuffledNodes = [...nodes].sort(() => Math.random() - 0.5);
+
+            shuffledNodes.forEach(node => {
+                const neighborLabels = links
+                    .filter(link => link.source.id === node.id || link.target.id === node.id)
+                    .map(link => (link.source.id === node.id ? link.target.label : link.source.label));
+
+                if (neighborLabels.length > 0) {
+                    const labelCounts = {};
+                    neighborLabels.forEach(label => {
+                        labelCounts[label] = (labelCounts[label] || 0) + 1;
+                    });
+
+                    // Find majority label(s)
+                    let maxCount = 0;
+                    for (const label in labelCounts) {
+                        if (labelCounts[label] > maxCount) {
+                            maxCount = labelCounts[label];
+                        }
+                    }
+                    const majorityLabels = Object.keys(labelCounts).filter(label => labelCounts[label] === maxCount);
+                    
+                    // Tie-breaking: pick one randomly
+                    const newLabel = parseInt(majorityLabels[Math.floor(Math.random() * majorityLabels.length)]);
+
+                    if (node.label !== newLabel) {
+                        node.label = newLabel;
+                        changed = true;
+                    }
+                }
+            });
+            currentIteration++;
+            console.log(`Iteration ${currentIteration}, changed: ${changed}`);
+            return changed;
+        }
+
+        function updateNodeColors() {
+            const nodeElements = svgContentGroup.querySelectorAll('.node');
+            nodeElements.forEach(circle => {
+                const nodeId = parseInt(circle.dataset.id);
+                const node = nodes.find(n => n.id === nodeId);
+                if (node) {
+                    circle.setAttribute('fill', labelColors[node.label % labelColors.length]);
+                }
+            });
+        }
+
+        function lpaLoop() {
+            if (!isLPARunning || isLPAPaused) return;
+
+            const changed = runLPAStep();
+            updateNodeColors();
+
+            if (!changed || currentIteration >= MAX_ITERATIONS) {
+                stopLPA();
+                console.log(changed ? "Max iterations reached." : "LPA converged.");
+            } else {
+                lpaInterval = setTimeout(lpaLoop, parseInt(simulationSpeedInput.value));
+            }
+        }
+
+        function startLPA() {
+            if (nodes.length === 0) return;
+            isLPARunning = true;
+            isLPAPaused = false;
+            startLPABtn.disabled = true;
+            pauseLPABtn.disabled = false;
+            resumeLPABtn.disabled = true;
+            stepLPABtn.disabled = true;
+            resetLPABtn.disabled = true;
+            generateGraphBtn.disabled = true;
+            lpaLoop();
+        }
+
+        function pauseLPA() {
+            isLPAPaused = true;
+            clearTimeout(lpaInterval);
+            startLPABtn.disabled = true;
+            pauseLPABtn.disabled = true;
+            resumeLPABtn.disabled = false;
+            stepLPABtn.disabled = false; // Allow stepping while paused
+            resetLPABtn.disabled = false;
+        }
+        
+        function resumeLPA() {
+            if (!isLPARunning || !isLPAPaused) return;
+            isLPAPaused = false;
+            startLPABtn.disabled = true;
+            pauseLPABtn.disabled = false;
+            resumeLPABtn.disabled = true;
+            stepLPABtn.disabled = true;
+            lpaLoop(); // Continue the loop
+        }
+
+        function stepLPA() {
+            if (nodes.length === 0) return;
+            if (!isLPARunning) { // If not started, treat step as first step
+                isLPARunning = true; // Mark as running so subsequent steps work
+                // initializeLPALabels(); // Ensure labels are set if it's the very first action
+            }
+            isLPAPaused = true; // Ensure it stays paused after step
+            clearTimeout(lpaInterval);
+
+            const changed = runLPAStep();
+            updateNodeColors();
+            
+            startLPABtn.disabled = true; // Can't start if already "running" (even if paused for stepping)
+            pauseLPABtn.disabled = true; // No active loop to pause
+            resumeLPABtn.disabled = false; // Can resume continuous play
+            stepLPABtn.disabled = false; // Can always step
+            resetLPABtn.disabled = false;
+            generateGraphBtn.disabled = true;
+
+
+            if (!changed || currentIteration >= MAX_ITERATIONS) {
+                stopLPA(false); // Stop but don't reset buttons like a full stop
+                console.log(changed ? "Max iterations reached during step." : "LPA converged during step.");
+                stepLPABtn.disabled = true; // No more steps if converged/maxed
+                resumeLPABtn.disabled = true;
+            }
+        }
+        
+        function stopLPA(resetControls = true) {
+            isLPARunning = false;
+            isLPAPaused = false;
+            clearTimeout(lpaInterval);
+            if (resetControls) {
+                updateLPAControls(true); // Re-enable relevant controls
+                generateGraphBtn.disabled = false;
+            }
+        }
+
+        function resetLPA() {
+            if (nodes.length === 0) return;
+            stopLPA();
+            initializeLPALabels();
+            updateNodeColors();
+            updateLPAControls(true);
+            generateGraphBtn.disabled = false;
+            currentIteration = 0;
+            console.log("LPA Reset to initial labels.");
+        }
+
+        function updateLPAControls(graphExists) {
+            startLPABtn.disabled = !graphExists;
+            pauseLPABtn.disabled = true; // Only enabled when running
+            resumeLPABtn.disabled = true; // Only enabled when paused
+            stepLPABtn.disabled = !graphExists;
+            resetLPABtn.disabled = !graphExists;
+        }
+        
+        function showNodeInfo(node) {
+            const neighborLabels = links
+                .filter(link => link.source.id === node.id || link.target.id === node.id)
+                .map(link => (link.source.id === node.id ? link.target.label : link.source.label));
+            
+            const labelCounts = {};
+            neighborLabels.forEach(label => {
+                labelCounts[label] = (labelCounts[label] || 0) + 1;
+            });
+            const neighborsSummary = Object.entries(labelCounts)
+                                     .map(([label, count]) => `L${label} (x${count})`)
+                                     .join(', ') || 'None';
+
+            infoNodeId.textContent = node.id;
+            infoNodeLabel.textContent = node.label;
+            infoNodeNeighbors.textContent = neighborsSummary;
+            nodeInfoPanel.style.display = 'block';
+        }
+
+        function hideNodeInfo() {
+            nodeInfoPanel.style.display = 'none';
+        }
+
+        // Event Listeners
+        generateGraphBtn.addEventListener('click', generateGraph);
+        startLPABtn.addEventListener('click', startLPA);
+        pauseLPABtn.addEventListener('click', pauseLPA);
+        resumeLPABtn.addEventListener('click', resumeLPA);
+        stepLPABtn.addEventListener('click', stepLPA);
+        resetLPABtn.addEventListener('click', resetLPA);
+
+        simulationSpeedInput.addEventListener('input', (e) => {
+            speedValueSpan.textContent = `${e.target.value}ms`;
+        });
+
+        // Initial setup
+        window.addEventListener('DOMContentLoaded', () => {
+            updateLPAControls(false); // Initially no graph, so disable LPA controls
+            speedValueSpan.textContent = `${simulationSpeedInput.value}ms`;
+            // Optionally generate a default graph on load
+            // generateGraph(); 
+        });
+
+    </script>
+</body>
+</html>

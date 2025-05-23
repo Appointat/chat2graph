@@ -4,22 +4,22 @@ from uuid import uuid4
 
 import pytest
 
-from app.core.agent.agent import AgentConfig, Profile
-from app.core.agent.builtin_leader_state import BuiltinLeaderState
-from app.core.agent.leader import Leader
-from app.core.common.singleton import AbcSingleton
-from app.core.model.job import Job, SubJob
-from app.core.model.job_graph import JobGraph
-from app.core.model.message import AgentMessage, WorkflowMessage
-from app.core.prompt.job_decomposition import JOB_DECOMPOSITION_OUTPUT_SCHEMA
-from app.core.reasoner.mono_model_reasoner import MonoModelReasoner
-from app.core.reasoner.reasoner import Reasoner
-from app.core.sdk.agentic_service import AgenticService
-from app.core.service.job_service import JobService
-from app.core.workflow.operator import Operator
-from app.core.workflow.operator_config import OperatorConfig
-from app.core.workflow.workflow import Workflow
-from app.plugin.dbgpt.dbgpt_workflow import DbgptWorkflow
+from chat2graph.core.agent.agent import AgentConfig, Profile
+from chat2graph.core.agent.builtin_leader_state import BuiltinLeaderState
+from chat2graph.core.agent.leader import Leader
+from chat2graph.core.common.singleton import AbcSingleton
+from chat2graph.core.model.job import Job, SubJob
+from chat2graph.core.model.job_graph import JobGraph
+from chat2graph.core.model.message import AgentMessage, WorkflowMessage
+from chat2graph.core.prompt.job_decomposition import JOB_DECOMPOSITION_OUTPUT_SCHEMA
+from chat2graph.core.reasoner.mono_model_reasoner import MonoModelReasoner
+from chat2graph.core.reasoner.reasoner import Reasoner
+from chat2graph.core.sdk.agentic_service import AgenticService
+from chat2graph.core.service.job_service import JobService
+from chat2graph.core.workflow.operator import Operator
+from chat2graph.core.workflow.operator_config import OperatorConfig
+from chat2graph.core.workflow.workflow import Workflow
+from chat2graph.plugin.dbgpt.dbgpt_workflow import DbgptWorkflow
 
 AgenticService()
 

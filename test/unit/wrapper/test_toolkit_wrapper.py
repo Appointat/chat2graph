@@ -1,8 +1,8 @@
 from unittest import mock
 
-from app.core.sdk.wrapper.toolkit_wrapper import ToolkitWrapper
-from app.core.service.toolkit_service import ToolkitService
-from app.core.toolkit.action import Action
+from chat2graph.core.sdk.wrapper.toolkit_wrapper import ToolkitWrapper
+from chat2graph.core.service.toolkit_service import ToolkitService
+from chat2graph.core.toolkit.action import Action
 from test.resource.tool_resource import Query
 
 ToolkitService()

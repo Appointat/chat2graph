@@ -1,7 +1,7 @@
-from app.core.dal.dao.dao_factory import DaoFactory
-from app.core.dal.database import DbSession
-from app.core.service.graph_db_service import GraphDbService
-from app.core.service.service_factory import ServiceFactory
+from chat2graph.core.dal.dao.dao_factory import DaoFactory
+from chat2graph.core.dal.database import DbSession
+from chat2graph.core.service.graph_db_service import GraphDbService
+from chat2graph.core.service.service_factory import ServiceFactory
 
 DaoFactory.initialize(DbSession())
 ServiceFactory.initialize()

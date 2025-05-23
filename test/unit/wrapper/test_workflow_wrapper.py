@@ -2,12 +2,12 @@ from unittest import mock
 
 import pytest
 
-from app.core.common.type import WorkflowPlatformType
-from app.core.sdk.wrapper.operator_wrapper import OperatorWrapper
-from app.core.sdk.wrapper.workflow_wrapper import WorkflowWrapper
-from app.core.workflow.operator import Operator
-from app.core.workflow.workflow import BuiltinWorkflow
-from app.plugin.dbgpt.dbgpt_workflow import DbgptWorkflow
+from chat2graph.core.common.type import WorkflowPlatformType
+from chat2graph.core.sdk.wrapper.operator_wrapper import OperatorWrapper
+from chat2graph.core.sdk.wrapper.workflow_wrapper import WorkflowWrapper
+from chat2graph.core.workflow.operator import Operator
+from chat2graph.core.workflow.workflow import BuiltinWorkflow
+from chat2graph.plugin.dbgpt.dbgpt_workflow import DbgptWorkflow
 
 
 class TestOperator(Operator):

@@ -2,12 +2,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.core.common.type import MessageSourceType
-from app.core.model.job import SubJob
-from app.core.model.message import ModelMessage
-from app.core.model.task import Task
-from app.core.reasoner.mono_model_reasoner import MonoModelReasoner
-from app.core.workflow.operator_config import OperatorConfig
+from chat2graph.core.common.type import MessageSourceType
+from chat2graph.core.model.job import SubJob
+from chat2graph.core.model.message import ModelMessage
+from chat2graph.core.model.task import Task
+from chat2graph.core.reasoner.mono_model_reasoner import MonoModelReasoner
+from chat2graph.core.workflow.operator_config import OperatorConfig
 
 job_id: str = "test_job_id"
 
