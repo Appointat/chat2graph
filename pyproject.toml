@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Chat2Graph: A Graph Native Agentic System."
 authors = ["Florian Fan <fanzhidongyzby@gmail.com>"]
 packages = [
-    { include = "app" }
+    { include = "chat2graph" }
 ]
 
 [tool.poetry.dependencies]
@@ -76,7 +76,7 @@ ignore = [
 [tool.ruff.lint.isort]
 combine-as-imports = true
 force-sort-within-sections = true
-known-first-party = ["app"]
+known-first-party = ["chat2graph"]
 
 [tool.ruff.format]
 quote-style = "double"
